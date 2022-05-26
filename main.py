@@ -4,11 +4,13 @@ import tensorflow as tf
 import pyaudio
 import matplotlib.pyplot as plt
 #import matplotlib.animation as animation
+import psycopg2 as pg2
+
 '''
 import datetime
 import serial
 '''
-
+'''
 plt.ion()
 
 figure, ax = plt.subplots(figsize=(8,6))
@@ -16,7 +18,7 @@ x = np.linspace(0, 1000, 1000)
 y = np.linspace(0, 100000, 1000)
 line1, = ax.plot(x, y, label='4')
 legend = plt.legend()
-
+'''
 
 slice_list = [0, 100, 100, 150, 450, 550]
 num_list = [100, 50, 50]
@@ -41,6 +43,11 @@ py_serial = serial.Serial(
     baudrate=9600,
 )
 '''
+conn = pg2.connect(
+    "dbname=bee_sound host=database-1.ckgpbmny4wg7.us-west-1.rds.amazonaws.com port=5432 user=bee_sound password=horsebee123")
+cur = conn.cursor()
+cur.execute("CREATE TABLE test1 (id serial PRIMARY KEY, num integer, data varchar);")
+cur.execute("INSERT INTO test1 (id, num, data) VALUES (%s, %s, %s);", (0, 100, "data01"))
 
 
 while True:
@@ -56,9 +63,10 @@ while True:
     mag = abs(np.fft.fft(data))
     x = np.linspace(0, RATE, len(mag))
 
+    '''
     line1.set_xdata(x[:1000])
     line1.set_ydata(mag[:1000])
-
+    '''
 
     size = len(mag) // RATE
     sampling_1 = mag[size * slice_list[0]:size * slice_list[1]:size*((slice_list[1]-slice_list[0])//num_list[0])]
@@ -67,18 +75,31 @@ while True:
     sampling = (np.hstack([sampling_1, sampling_2, sampling_3])).tolist()
     yhat = model.predict([sampling])
     print(np.argmax(yhat, axis=1))#, "  at  ", (datetime.datetime.now()).strftime('%H:%M:%S'))
+
+    '''
     line1.set_label("%s" % str(np.argmax(yhat, axis=1)))
+
 
     legend.remove()
     legend = plt.legend()
 
     figure.canvas.draw()
     figure.canvas.flush_events()
+    '''
+
+    cur.execute("DELETE FROM test1")
+    cur.execute("INSERT INTO test1 (id, num, data) VALUES (%s, %s, %s);", (str(np.argmax(yhat, axis=1)[0]), 100, "data01"))
+
+    '''
+    cur.execute("SELECT * FROM test1")
+    (id, num, data) = cur.fetchone()
+    print(f"{id}, {num}, {data}")
+    '''
 
 
-
+'''
 stream.stop_stream()
 stream.close()
 p.terminate()
-
+'''
 
